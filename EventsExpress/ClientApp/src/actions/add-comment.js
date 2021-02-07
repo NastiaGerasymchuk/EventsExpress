@@ -9,20 +9,19 @@ export const SET_COMMENT_SUCCESS = "SET_COMMENT_SUCCESS";
 const api_serv = new CommentService();
 
 export default function add_comment(data) {
-
     return dispatch => {
         dispatch(setCommentPending(true));
 
-        const res = api_serv.setComment(data);
-        return res.then(response => {
-            if (response.error == null) {
+        return api_serv.setComment(data)
+            .then(response => {
+                if (response.error != null) {
+                    throw new SubmissionError(buildValidationState(response.error));
+                }
+
                 dispatch(setCommentSuccess(true));
-                dispatch(get_comments(data.eventId,1));
-                return Promise.resolve('success');
-            } else {
-                throw new SubmissionError(buildValidationState(response.error));
-            }
-        });
+                dispatch(get_comments(data.eventId, 1));
+                return Promise.resolve();
+            });
     }
 }
 

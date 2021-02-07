@@ -130,7 +130,6 @@ const initialState = {
     add_copy_event: {
         isCopyEventPending: false,
         isCopyEventSuccess: false,
-        copyEventError: null
     },
     edit_event_from_parent: {
         isEventFromParentPending: false,

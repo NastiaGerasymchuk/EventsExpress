@@ -11,24 +11,40 @@ const api_serv = new EventService();
 const history = createBrowserHistory({forceRefresh:true});
 
 export default function add_copy_event(eventId) {
-
     return dispatch => {
         dispatch(setCopyEventPending(true));
 
-        const res = api_serv.setCopyEvent(eventId);
-        res.then(response => {
-            if (response.error == null) {
+        return api_serv.setCopyEvent(eventId)
+            .then(response => {
+                if (response.error != null) {
+                    let alertObj = buildAllertWithError(buildValidationState(response.error))
+                    
+                    dispatch(setAlert(buildAllertWithError(buildValidationState(response.error))));
+                    return Promise.reject();
+                }
+
                 dispatch(setCopyEventSuccess(true));
-                response.json().then(x => { 
-                    dispatch(copyEventWasCreated(x));
-                    dispatch(setAlert({ variant: 'success', message: 'Your event was created!'}));
-                    dispatch(history.push(`/event/${x.id}/1`));} );
-            } else {
-                dispatch(setCopyEventError(response.error));
-            }
-        });
+                return response.json()
+                    .then(x => { 
+                        dispatch(copyEventWasCreated(x));
+                        dispatch(setAlert(buildAllertWithSuccess('Your event was created!')));
+                        dispatch(history.push(`/event/${x.id}/1`));
+                        return Promise.resolve();
+                    });
+            });
     }
 }
+
+
+let buildAllertWithError = (msg) => ({
+    variant: 'error', 
+    message: msg,
+})
+
+let buildAllertWithSuccess = (msg) => ({
+    variant: 'success', 
+    message: msg,
+})
 
 function copyEventWasCreated(eventId) {
     return {
