@@ -1,0 +1,2 @@
+PhotoId,Title,Description,IsReccurent,MaxParticipants,Frequency,Periodicity,Location.OnlineMeeting, Location.Type,IsPublic,categories[0].id
+ee01875e-8b4c-4626-87c7-c225d684c68e,Event for adding,Description for new event,false,8,1,1,https://localhost:44344/swagger/index.html, 1,true,735d6e31-14f5-489d-bd90-a964b133aa8e

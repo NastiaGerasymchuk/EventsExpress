@@ -5,8 +5,6 @@ using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using EventsExpress.Core.Extensions;
 using EventsExpress.Core.Infrastructure;
 using EventsExpress.Core.IServices;
@@ -14,56 +12,35 @@ using EventsExpress.Db.BaseService;
 using EventsExpress.Db.EF;
 using EventsExpress.Db.Entities;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Options;
 
 namespace EventsExpress.Core.Services
 {
-    public class PhotoService : IPhotoService
+    public class PhotoService : BaseService<Photo>, IPhotoService
     {
-        private readonly BlobContainerClient _blobContainerClient;
         private readonly IOptions<ImageOptionsModel> _widthOptions;
         private readonly Lazy<HttpClient> _client;
 
         public PhotoService(
+            AppDbContext context,
             IOptions<ImageOptionsModel> opt,
-            IHttpClientFactory clientFactory,
-            BlobServiceClient blobServiceClient)
+            IHttpClientFactory clientFactory)
+            : base(context)
         {
             _widthOptions = opt;
             _client = new Lazy<HttpClient>(() => clientFactory.CreateClient());
-            _blobContainerClient = blobServiceClient.GetBlobContainerClient("images");
         }
 
-        private static bool IsValidImage(IFormFile file) => file != null && file.IsImage();
-
-        public async Task AddEventPhoto(IFormFile uploadedFile, Guid id)
+        public async Task<Photo> AddPhoto(IFormFile uploadedFile)
         {
-            if (!IsValidImage(uploadedFile))
-            {
-                throw new ArgumentException("The upload file should be a valid image", nameof(uploadedFile));
-            }
+            var photo = GetPhotoFromIFormFile(uploadedFile);
+            Insert(photo);
+            await Context.SaveChangesAsync();
 
-            var previewPhoto = GetResizedBytesFromFile(uploadedFile, _widthOptions.Value.Thumbnail);
-            await UploadPhotoToBlob(previewPhoto, $"events/{id}/preview.png");
-
-            var fullPhoto = GetResizedBytesFromFile(uploadedFile, _widthOptions.Value.Image);
-            await UploadPhotoToBlob(fullPhoto, $"events/{id}/full.png");
+            return photo;
         }
 
-        public async Task AddUserPhoto(IFormFile uploadedFile, Guid id)
-        {
-            if (!IsValidImage(uploadedFile))
-            {
-                throw new ArgumentException("The upload file should be a valid image", nameof(uploadedFile));
-            }
-
-            var photo = GetResizedBytesFromFile(uploadedFile, _widthOptions.Value.Thumbnail);
-
-            await UploadPhotoToBlob(photo, $"users/{id}/photo.png");
-        }
-
-        public async Task AddPhotoByURL(string url, Guid id)
+        public async Task<Photo> AddPhotoByURL(string url)
         {
             if (!await IsImageUrl(url))
             {
@@ -71,9 +48,17 @@ namespace EventsExpress.Core.Services
             }
 
             Uri uri = new Uri(url);
-            byte[] photo = _client.Value.GetByteArrayAsync(uri).Result;
+            byte[] imgData = _client.Value.GetByteArrayAsync(uri).Result;
+            var photo = new Photo
+            {
+                Thumb = imgData,
+                Img = imgData,
+            };
 
-            await UploadPhotoToBlob(photo, $"users/{id}/photo.png");
+            Insert(photo);
+            await Context.SaveChangesAsync();
+
+            return photo;
         }
 
         private async Task<bool> IsImageUrl(string url)
@@ -87,6 +72,34 @@ namespace EventsExpress.Core.Services
             {
                 return false;
             }
+        }
+
+        public async Task Delete(Guid id)
+        {
+            var photo = Context.Photos.Find(id);
+            if (photo != null)
+            {
+                Delete(photo);
+                await Context.SaveChangesAsync();
+            }
+        }
+
+        private static bool IsValidImage(IFormFile file) => file != null && file.IsImage();
+
+        private Photo GetPhotoFromIFormFile(IFormFile uploadedFile)
+        {
+            if (!IsValidImage(uploadedFile))
+            {
+                throw new ArgumentException("The upload file should be a valid image", nameof(uploadedFile));
+            }
+
+            var photo = new Photo
+            {
+                Thumb = GetResizedBytesFromFile(uploadedFile, _widthOptions.Value.Thumbnail),
+                Img = GetResizedBytesFromFile(uploadedFile, _widthOptions.Value.Image),
+            };
+
+            return photo;
         }
 
         public byte[] GetResizedBytesFromFile(IFormFile file, int newWidth)
@@ -110,40 +123,6 @@ namespace EventsExpress.Core.Services
             imageIn.Save(ms, ImageFormat.Png);
 
             return ms.ToArray();
-        }
-
-        private async Task UploadPhotoToBlob(byte[] photo, string url)
-        {
-            _blobContainerClient.CreateIfNotExists();
-
-            if (photo != null)
-            {
-                using var stream = new MemoryStream(photo, false);
-                BlobClient blobClient = _blobContainerClient.GetBlobClient(url);
-                BlobUploadOptions blobUploadOptions = new BlobUploadOptions
-                {
-                    HttpHeaders = new BlobHttpHeaders
-                    {
-                        ContentType = "image/png",
-                    },
-                };
-                await blobClient.UploadAsync(stream, blobUploadOptions, default);
-            }
-        }
-
-        public async Task<string> GetPhotoFromAzureBlob(string url)
-        {
-            try
-            {
-                using var previewMS = new MemoryStream();
-                BlobClient blobClient = _blobContainerClient.GetBlobClient(url);
-                await blobClient.DownloadToAsync(previewMS);
-                return previewMS.ToArray().ToRenderablePictureString();
-            }
-            catch (Azure.RequestFailedException)
-            {
-                return null;
-            }
         }
     }
 }

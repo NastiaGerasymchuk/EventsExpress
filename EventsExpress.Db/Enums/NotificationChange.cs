@@ -2,7 +2,7 @@
 {
     public enum NotificationChange
     {
-        Profile = 1,
+        Profile,
         OwnEvent,
         VisitedEvent,
     }

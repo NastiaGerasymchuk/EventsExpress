@@ -7,12 +7,10 @@ namespace EventsExpress.Core.IServices
 {
     public interface IPhotoService
     {
-        Task AddEventPhoto(IFormFile uploadedFile, Guid id);
+        Task<Photo> AddPhoto(IFormFile uploadedFile);
 
-        Task AddUserPhoto(IFormFile uploadedFile, Guid id);
+        Task<Photo> AddPhotoByURL(string url);
 
-        Task AddPhotoByURL(string url, Guid id);
-
-        Task<string> GetPhotoFromAzureBlob(string url);
+        Task Delete(Guid id);
     }
 }

@@ -20,11 +20,11 @@ namespace EventsExpress.Validation
                .Must(item => !_unitOfMeasuringService.ExistsByName(item.UnitName, item.ShortName))
                .WithMessage("The same UNIT OF MEASURING and SHORT UNIT OF MEASURING already exists!");
 
-            RuleFor(x => x.UnitName).Cascade(CascadeMode.Stop)
+            RuleFor(x => x.UnitName).Cascade(CascadeMode.StopOnFirstFailure)
                 .Matches(@"^[\p{L} ]+$")
                 .WithMessage("Unit name needs to consist only letters or whitespaces");
 
-            RuleFor(x => x.ShortName).Cascade(CascadeMode.Stop)
+            RuleFor(x => x.ShortName).Cascade(CascadeMode.StopOnFirstFailure)
                 .Matches(@"^([\p{L}]+)([/]([\p{L}]+))?$")
                 .WithMessage("Short name needs to consist only letters or letter(s)/letter(s)");
         }
