@@ -11,7 +11,7 @@
 
     public class LocationData
     {
-        private const string EventLocationPath = Path.LOCATIONPATH;
+        private const string EventLocationPath = Path.LocationPath;
 
         public static IEnumerable<EventLocation> GetEventsLocationFromFile()
         {

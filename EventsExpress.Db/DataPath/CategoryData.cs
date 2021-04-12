@@ -13,7 +13,7 @@ namespace EventsExpress.Db.DataPath
 {
     public class CategoryData
     {
-        private const string CategoryPath = Path.CATEGORYPATH;
+        private const string CategoryPath = Path.CategoryPath;
 
         public static Category FromCsv(string csvLine)
         {

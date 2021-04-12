@@ -8,7 +8,7 @@
 
     public class PhotoData
     {
-        private const string PhotoPath = Path.PHOTOPATH;
+        private const string PhotoPath = Path.PhotoPath;
 
         public const string FilePathMongo = Path.FilePathMongoPhoto;
 
